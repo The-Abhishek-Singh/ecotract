@@ -18,20 +18,24 @@ export async function POST(req: NextRequest) {
     const arrayBuffer = await image.arrayBuffer();
     
     // Simulate TensorFlow model loading and inference delay
-    // In a real scenario, you would do:
-    // const model = await tf.loadLayersModel('file://path/to/model.json');
-    // const tensor = tf.node.decodeImage(new Uint8Array(arrayBuffer))
-    // const prediction = model.predict(tensor);
-    
-    await new Promise((resolve) => setTimeout(resolve, 2500)); // 2.5s delay
+    await new Promise((resolve) => setTimeout(resolve, 1500)); // 1.5s delay
 
-    // Mock logic: randomly select a disease class
-    const randomIndex = Math.floor(Math.random() * diseaseClasses.length);
+    // Create a deterministic hash from the file's properties so the same image yields the same result
+    const fileIdentifier = `${image.name}-${image.size}-${image.type}`;
+    let hash = 0;
+    for (let i = 0; i < fileIdentifier.length; i++) {
+      hash = fileIdentifier.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const seed = Math.abs(hash);
+
+    // Deterministic logic: select a disease class based on the file's hash
+    const randomIndex = seed % diseaseClasses.length;
     const predictedClassName = diseaseClasses[randomIndex];
     const diseaseInfo = diseaseDictionary[predictedClassName];
     
-    // Generate a mock confidence score between 80% and 99%
-    const confidence = (Math.random() * (0.99 - 0.80) + 0.80) * 100;
+    // Generate a deterministic confidence score between 80% and 99%
+    const confidenceSeed = (seed % 100) / 100; // 0.0 to 0.99
+    const confidence = (confidenceSeed * (0.99 - 0.80) + 0.80) * 100;
 
     return NextResponse.json({
       success: true,
